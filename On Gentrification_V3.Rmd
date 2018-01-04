@@ -1,0 +1,162 @@
+---
+title: "Gentrification other"
+author: "Michael Mann"
+date: "January 4, 2018"
+output: html_document
+---
+ 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r  comment = NA, echo = FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(gridExtra)
+library(rgdal)
+library(sp)
+library(RColorBrewer)
+library(tmap)
+library(corrplot)
+library(normtest)
+library(psych)
+library(leaps)
+library(lmtest)
+library(car)
+library(sphet)
+library(spgwr)
+library(spData)
+library(classInt)
+library(spdep)
+library(rgdal)
+
+```
+
+```{r  comment = NA, message=FALSE, warning=FALSE}
+setwd("~/Desktop/On_gent_v2/")
+```
+### Data prep
+```{r comment = NA, message=FALSE, warning=FALSE}
+gen<-readOGR("gent_raw_data.shp")
+names(gen)
+gen$change_vcr<-as.numeric(as.character((gen$change_vcr))) #  change data type 
+gen$change_ren<-as.numeric(as.character((gen$change_ren)))
+gen$change_hhs<-as.numeric(as.character((gen$change_hhs)))
+##### First Order Queen Contiguity matrix
+
+proj4string(gen)<-CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0") # Create projection  in case .pjr file doesn't come alone with the shp file.
+
+#gen_NAD<-spTransform(gen, CRS("+init=ESRI:102685")) # Reproject to ESRI:102685 (NAD 1983 Stateplane Maryland FIPS 1900)
+
+queen.cont<-poly2nb(gen) # create queen contiguity matrix
+coords<-coordinates(gen) 
+
+```
+
+
+### Regression
+```{r  comment = NA, message=FALSE, warning=FALSE}
+for1<-change_inc~p_chg_wh+change_ren+p_chg_pvt+p_chg_edc # first formula
+```
+### Basic OLS
+```{r  comment = NA, message=FALSE, warning=FALSE}
+model.lm<-lm(for1, data =gen) # regression using first formula
+summary(model.lm)
+```
+******
+
+### Change in White pop OLS Prediction  
+
+This shows how change in % white population is estimated to effect change in income, holding all other variables at thier mean.
+```{r  comment = NA, message=FALSE, warning=FALSE}
+# coeff for chg_wht * gen data + all other variables at their mean
+model.lm<-lm(for1, data =gen) # regression using first formula
+gen$wht_chng_pred = model.lm$coefficients['(Intercept)']+model.lm$coefficients['p_chg_wh']*gen$p_chg_wh+model.lm$coefficients['change_ren']*mean(gen$change_ren,na.rm=T)+model.lm$coefficients['p_chg_pvt']*mean(gen$p_chg_pvt,na.rm=T)+model.lm$coefficients['p_chg_edc']*mean(gen$p_chg_edc,na.rm=T)
+qtm(gen, fill="wht_chng_pred", fill.style = "jenks", fill.palette ="RdBu", borders ="#f1f1f1")
+
+```
+
+******
+
+### Change in rent and education OLS Prediction 
+This shows how change in % white population and change in rents is estimated to effect change in income, holding all other variables at thier mean.
+
+```{r  comment = NA, message=FALSE, warning=FALSE}
+model.lm<-lm(for1, data =gen) # 
+gen$wht_edu_chng_pred = model.lm$coefficients['(Intercept)']+model.lm$coefficients['p_chg_wh']*gen$p_chg_wh +  model.lm$coefficients['change_ren']*mean(gen$change_ren,na.rm=T)+model.lm$coefficients['p_chg_pvt']*mean(gen$p_chg_pvt,na.rm=T)+model.lm$coefficients['p_chg_edc']*gen$p_chg_edc
+
+qtm(gen, fill="wht_edu_chng_pred", fill.style = "jenks", fill.palette ="RdBu", borders ="#f1f1f1")
+
+```
+
+******
+
+### Change in rent, education, & poverty OLS Prediction 
+This shows how change in % white population and change in rents is estimated to effect change in income, holding all other variables at thier mean.
+```{r  comment = NA, message=FALSE, warning=FALSE}
+model.lm<-lm(for1, data =gen) # 
+gen$wht_edu_chng_pred = model.lm$coefficients['(Intercept)']+model.lm$coefficients['p_chg_wh']*gen$p_chg_wh +  model.lm$coefficients['change_ren']*mean(gen$change_ren,na.rm=T)+model.lm$coefficients['p_chg_pvt']*gen$p_chg_pvt+model.lm$coefficients['p_chg_edc']*gen$p_chg_edc
+
+qtm(gen, fill="wht_edu_chng_pred", fill.style = "jenks", fill.palette ="RdBu", borders ="#f1f1f1")
+
+```
+
+******
+
+###  Z-score scale 
+
+```{r}
+
+z.inc<-scale(gen$change_inc, scale = T, center = T)
+z.wht<-scale(gen$p_chg_wh, scale = T, center = T)
+z.edc<-scale(gen$p_chg_edc, scale = T, center = T)
+z.pvt<-scale(gen$p_chg_pvt, scale = T, center = T)
+z.ren<-scale(gen$change_ren, scale = T, center = T)
+
+weighted.z<-data.frame((z.inc+z.wht+z.edc+z.ren)-z.pvt) 
+colnames(weighted.z) <-"wgt.z"
+
+scaled_zscore<-data.frame(cbind(z.inc,z.wht, z.edc, z.ren, z.pvt, weighted.z))
+colnames(scaled_zscore) <-c("z.inc", "z.wht", "z.edc", "z.ren", "z.pvt", "wgt.z")
+gen$weighted_z_sum<-scaled_zscore$wgt.z
+
+
+#Jenks MAP of weighted z-score
+
+qtm(gen, fill="weighted_z_sum", fill.style = "jenks", fill.palette ="RdBu", borders ="#f1f1f1")
+
+```
+
+******
+
+### 0 to 1 Scale 
+
+```{r  comment = NA, message=FALSE, warning=FALSE}
+# Function to scale betwen 0 and 1
+
+rescale <- function(v, lower = 0, upper = 1) {
+
+  L <- min(v)
+  H <- max(v)
+  result <- (v - L) / (H - L) * (upper - lower) + lower
+  return(result)
+}
+s.inc<-rescale(gen$change_inc)
+s.wht<-rescale(gen$p_chg_wh) #scaled to 0 and 1
+s.edc<-rescale(gen$p_chg_edc)
+s.pvt<-rescale(gen$p_chg_pvt)
+s.ren<-rescale(gen$change_ren)
+
+weighted.s<-data.frame((s.inc+s.wht+s.edc+s.ren)-s.pvt) # Equation for weighted z
+
+colnames(weighted.s) <-"wgt.s"
+scaled_values<-data.frame(cbind(s.inc, s.wht, s.edc, s.ren, s.pvt, weighted.s))
+colnames(scaled_values) <-c("s.inc", "s.wht", "s.edc", "s.ren", "s.pvt", "wgt.s")
+gen$weighted_sum<-scaled_values$wgt.s
+
+#QUANTILE MAP
+
+qtm(gen, fill="weighted_sum", fill.style = "jenks", fill.palette ="RdBu", borders ="#f1f1f1")
+
+```
+
+
