@@ -16,27 +16,26 @@ library(rgdal)
 library(sp)
 library(RColorBrewer)
 library(tmap)
-library(corrplot)
-library(normtest)
-library(psych)
-library(leaps)
-library(lmtest)
+#library(corrplot)
+#library(normtest)
+#library(psych)
+#library(leaps)
+#library(lmtest)
 library(car)
-library(sphet)
-library(spgwr)
-library(spData)
-library(classInt)
-library(spdep)
-library(rgdal)
-
+#library(sphet)
+#library(spgwr)
+#library(spData)
+#library(classInt)
+#library(spdep)
+ 
 ```
 
 ```{r  comment = NA, message=FALSE, warning=FALSE}
-setwd("~/Desktop/On_gent_v2/")
+setwd("/Users/mmann/Desktop/DC_gentrification/")
 ```
 ### Data prep
 ```{r comment = NA, message=FALSE, warning=FALSE}
-gen<-readOGR("gent_raw_data.shp")
+gen<-readOGR("./gen_raw_data.GeoJSON")
 names(gen)
 gen$change_vcr<-as.numeric(as.character((gen$change_vcr))) #  change data type 
 gen$change_ren<-as.numeric(as.character((gen$change_ren)))
@@ -47,7 +46,6 @@ proj4string(gen)<-CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84
 
 #gen_NAD<-spTransform(gen, CRS("+init=ESRI:102685")) # Reproject to ESRI:102685 (NAD 1983 Stateplane Maryland FIPS 1900)
 
-queen.cont<-poly2nb(gen) # create queen contiguity matrix
 coords<-coordinates(gen) 
 
 ```
@@ -159,4 +157,8 @@ qtm(gen, fill="weighted_sum", fill.style = "jenks", fill.palette ="RdBu", border
 
 ```
 
+````{r section} 
+library(sf)
+st_write(st_as_sf(gen), "GentrificationModels.GeoJSON")
+```
 
