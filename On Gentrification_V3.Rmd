@@ -31,7 +31,7 @@ library(car)
 ```
 
 ```{r  comment = NA, message=FALSE, warning=FALSE}
-setwd("/Users/mmann/Desktop/DC_gentrification/")
+setwd("~/Desktop/DC_gentrification/")
 ```
 ### Data prep
 ```{r comment = NA, message=FALSE, warning=FALSE}
@@ -101,7 +101,7 @@ qtm(gen, fill="wht_edu_chng_pred", fill.style = "jenks", fill.palette ="RdBu", b
 ******
 
 ###  Z-score scale 
-
+z-score weighted sum
 ```{r}
 
 z.inc<-scale(gen$change_inc, scale = T, center = T)
@@ -127,7 +127,7 @@ qtm(gen, fill="weighted_z_sum", fill.style = "jenks", fill.palette ="RdBu", bord
 ******
 
 ### 0 to 1 Scale 
-
+01 weighted sum 
 ```{r  comment = NA, message=FALSE, warning=FALSE}
 # Function to scale betwen 0 and 1
 
